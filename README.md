@@ -2,42 +2,15 @@
 
 ## 1. Overview
 
-**Quant Strategy Backtester** is a systematic **intraday mean-reversion** trading framework designed to exploit short-term price dislocations in large-cap U.S. equities.  
-The system operates without leverage and adheres to strict capital and risk management constraints. It combines statistical signal generation, volatility-adjusted position sizing, and execution constraints designed for realistic intraday trading environments.
-
-The repository contains the full implementation, quantitative reports, and analytical outputs from the **V4.9 backtest**, including the equity curve, performance tear sheet, per-ticker trade charts, and trade-level reports.
-### QuantStats Performance Report
-
 The complete backtest analysis for the strategy has been published using QuantStats, providing a deep dive into performance, risk, and return metrics.
 Click below to explore the full institutional-style interactive report (Sharpe, Sortino, Drawdowns, Rolling Returns, and much more):
 [Click here to view the full QuantStats backtest report](https://alqama-svg.github.io/Quant_Strategy_Backtester/)
 
 ---
 
-## 2. Strategy Description
+## 2. Working Mechanism
 
-### 2.1 Core Concept
-
-The Quant Strategy Backtester system is based on the hypothesis that **short-term price overextensions** within intraday horizons tend to revert toward their mean when normalized for volatility. The model identifies and exploits these temporary inefficiencies using a standardized statistical deviation measure (Z-score).
-
-### 2.2 Signal Generation Logic
-
-At each intraday bar (typically 1-minute or 5-minute resolution):
-
-1. Compute a **rolling moving average** of recent close prices (`MA_window` = 20 by default).  
-2. Compute the **rolling standard deviation** over the same window to capture short-term volatility.  
-3. Derive a **Z-score** for the current price:
-
-   \[
-   Z_t = \frac{P_t - MA_t}{\sigma_t}
-   \]
-
-4. Generate trade signals:
-   - **Long Entry:** when \( Z_t < -Z_{\text{entry}} \)
-   - **Exit:** when \( Z_t \geq 0 \) or time-based stop is reached
-   - **Short Entry (optional):** when \( Z_t > Z_{\text{entry}} \)
-
-The system avoids trading during the first and last few minutes of the session to reduce opening/closing volatility bias.
+The framework avoids trading during the first and last few minutes of the session to reduce opening/closing volatility bias.
 
 ### 2.3 Risk Management and Position Sizing
 
@@ -63,27 +36,7 @@ The system avoids trading during the first and last few minutes of the session t
 
 ---
 
-## 4. Backtest Configuration (Default Parameters)
-
-| Parameter | Description | Default Value |
-|------------|--------------|----------------|
-| `capital_initial` | Starting capital | \$1,000,000 |
-| `universe` | Tickers traded | 32 U.S. large-cap equities |
-| `data_freq` | Intraday resolution | 5-minute bars |
-| `ma_window` | Moving average lookback | 20 |
-| `z_entry_threshold` | Z-score entry level | 1.5 |
-| `stop_loss_pct` | Stop-loss level | 2% |
-| `profit_target_pct` | Profit target level | 2% |
-| `risk_per_trade` | Fraction of equity per trade | 0.25% |
-| `max_positions` | Max concurrent trades | 10 |
-| `trading_hours` | Active trading window | 09:30–15:45 |
-| `execution_slippage` | Per-share slippage | \$0.01 |
-| `commission_per_share` | Transaction fee | \$0.001 |
-| `leverage` | Gross exposure | 1x (no leverage) |
-
----
-
-## 5. Results Summary (QuantX V4.9 Full-Year 2024 Backtest)
+## 4. Results Summary (QuantX V4.9 Full-Year 2024 Backtest)
 
 **Date Range:** 2024-01-02 → 2024-12-31  
 **Tickers:** 32 (Dow 30 + additional large-cap stocks)  
@@ -152,7 +105,7 @@ The following analytical components are provided as part of the QuantX V4.9 back
 
 ## 7. Interpretation of Results
 
-- The intraday mean-reversion framework generated **consistent low-drawdown performance**, achieving ~26% annualized return with sub-2% drawdown.
+- The framework generated **consistent low-drawdown performance**, achieving ~26% annualized return with sub-2% drawdown.
 - **High trade frequency** implies strong statistical validity and robustness of Z-score thresholds.
 - **Limited correlation** with SPY confirms mean-reversion’s market-neutral nature.
 - **Drawdowns remain shallow**, suggesting effective volatility-normalized position sizing and proper intraday stop management.
