@@ -1,4 +1,4 @@
-# Quant Strategy Backtester — Intraday Mean-Reversion Trading Strategy
+# Quant Strategy Backtester — DD < 2% RoI > 40% Sharpe 2.36
 
 ## 1. Overview
 
