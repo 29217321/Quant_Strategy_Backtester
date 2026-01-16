@@ -8,35 +8,7 @@ Click below to explore the full institutional-style interactive report (Sharpe, 
 
 ---
 
-## 2. Working Mechanism
-
-The framework avoids trading during the first and last few minutes of the session to reduce opening/closing volatility bias.
-
-### 2.3 Risk Management and Position Sizing
-
-- **Position Sizing:** Volatility-normalized. Capital allocated per trade is inversely proportional to recent volatility, ensuring consistent risk contribution per position.  
-- **Stop-Loss / Target:** 2% each side (configurable).  
-- **Time Stop:** Positions are closed by end-of-day or after a maximum holding window (e.g., 30–60 minutes).  
-- **Leverage:** Not used (1x nominal exposure).  
-- **Liquidity Filters:** Trades are executed only in highly liquid tickers (average intraday volume > 1M shares).
-
-### 2.4 Execution Model
-
-- Market and limit orders simulated with transaction cost and slippage assumptions.  
-- Intraday backtest window: 09:30–15:45 ET (U.S. session).  
-- Execution uses tick/5-minute bar data, slippage = $0.01/share, commission = $0.001/share.
-
----
-
-## 3. Benchmark and Comparative Framework
-
-- **Benchmark Asset:** SPY (S&P 500 ETF).  
-- **Comparison Metric:** Daily returns vs SPY.  
-- **Benchmark Rationale:** SPY represents broad U.S. equity exposure; mean-reversion strategies are typically market-neutral, so excess returns relative to SPY reflect pure alpha generation.
-
----
-
-## 4. Results Summary (QuantX V4.9 Full-Year 2024 Backtest)
+## 2. Results Summary (QuantX V4.9 Full-Year 2024 Backtest)
 
 **Date Range:** 2024-01-02 → 2024-12-31  
 **Tickers:** 32 (Dow 30 + additional large-cap stocks)  
@@ -67,7 +39,7 @@ The framework avoids trading during the first and last few minutes of the sessio
 
 ---
 
-## 6. Analytical Outputs
+## 3. Analytical Outputs
 
 The following analytical components are provided as part of the QuantX V4.9 backtest package:
 
@@ -103,7 +75,7 @@ The following analytical components are provided as part of the QuantX V4.9 back
 
 ---
 
-## 7. Interpretation of Results
+## 4. Interpretation of Results
 
 - The framework generated **consistent low-drawdown performance**, achieving ~26% annualized return with sub-2% drawdown.
 - **High trade frequency** implies strong statistical validity and robustness of Z-score thresholds.
@@ -112,15 +84,7 @@ The following analytical components are provided as part of the QuantX V4.9 back
 
 ---
 
-## 8. Sharpe Ratio Discrepancy Clarification
-
-- The backtest engine Sharpe (2.36) is computed using per-trade returns with intraday scaling.
-- The QuantStats tear sheet Sharpe (0.12) is computed using resampled daily returns with standard 252-day annualization.
-- Both are correct within their respective frameworks; the difference arises from return sampling frequency and normalization method.
-
----
-
-## 9. Future Scope and Expansion
+## 5. Future Scope and Expansion
 
 1. **Multi-Asset Extension:**  
    Expand universe to include ETFs, futures, or FX pairs with synchronized tick data for cross-asset mean reversion.
@@ -142,7 +106,7 @@ The following analytical components are provided as part of the QuantX V4.9 back
 
 ---
 
-## 10. Reproducibility
+## 6. Reproducibility
 
 ### Environment
 
@@ -178,7 +142,7 @@ The following analytical components are provided as part of the QuantX V4.9 back
 
 ---
 
-## 11. Repository Structure
+## 7. Repository Structure
 
 ```
 Quant_Strategy_Backtester/
@@ -213,23 +177,23 @@ Quant_Strategy_Backtester/
 ```
 ---
 
-## 12. Conclusion
+## 8. Conclusion
 
-QuantX V4.9 demonstrates the efficacy of a statistically disciplined, volatility-adjusted intraday mean-reversion framework.  
+Strategy demonstrates the efficacy of a statistically disciplined, volatility-adjusted intraday mean-reversion framework.  
 The backtest confirms that a properly parameterized short-horizon strategy can achieve superior risk-adjusted returns while maintaining minimal drawdowns.
 
 This repository serves as a complete and reproducible record of the strategy’s design, assumptions, implementation, and results, suitable for internal audit, investment committee review, or further research development.
 
 ---
 
-## 13. License
+## 9. License
 
 Released under the MIT License.  
 Copyright © 2025 Alqama Ansari.
 
 ---
 
-## 14. Citation
+## 10. Citation
 
 If referencing or using this codebase in research:
 
