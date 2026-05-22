@@ -1,3 +1,23 @@
+"""
+QuantX V4.9 — main entry point. Runs the backtest and writes reports to OUT_DIR.
+"""
+import os
+import traceback
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+
+from strategy import (
+    TICKERS, START_DATE, END_DATE, RUN_MODE,
+    OUT_DIR, GENERATE_PDF, MAX_TICKER_CHARTS,
+    STOP_LOSS_PCT, TAKE_PROFIT_PCT,
+)
+from backtest import run_backtest
+from reporting import summarize_performance
+
+
 # ----------
 # Run (main)
 # ----------

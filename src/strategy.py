@@ -1,3 +1,32 @@
+"""
+QuantX V4.9 — strategy parameters, data loaders, and indicator helpers.
+"""
+import os
+import glob
+from datetime import time
+
+import numpy as np
+import pandas as pd
+
+try:
+    import polars as pl  # optional, only needed for .parquet inputs
+except Exception:
+    pl = None
+
+# ------------------------------------------------------------------
+# Run configuration (override via env vars or by editing here)
+# ------------------------------------------------------------------
+RUN_MODE  = os.environ.get("QUANTX_RUN_MODE", "JAN")  # JAN / FEB / JAN_FEB / JAN_JUN / JUL_SEP / OCT_DEC / FULL
+DATA_ROOT = os.environ.get("QUANTX_DATA_ROOT", "./data")
+
+# Dow 30 + a few large caps (matches the README universe size of 32).
+ALL_TICKERS = [
+    "AAPL", "MSFT", "AMZN", "NVDA", "GOOGL", "META", "TSLA", "JPM",
+    "V", "UNH", "HD", "PG", "MA", "DIS", "BAC", "XOM",
+    "KO", "PFE", "CSCO", "WMT", "INTC", "VZ", "CVX", "MRK",
+    "MCD", "NKE", "CRM", "BA", "IBM", "GS", "MMM", "CAT",
+]
+
 # ---------------
 # Strategy params
 # ---------------
@@ -154,3 +183,66 @@ def load_minute_parquet_for_day(ticker, date_str):
         return None
     _day_cache[key] = df[['timestamp','open','high','low','close','volume','ms_of_day']].copy()
     return _day_cache[key]
+
+
+# ------------------------------------------------------------------
+# Indicator helpers (restored from the original notebook)
+# ------------------------------------------------------------------
+def compute_daily_trend(ticker, dates):
+    """Return (daily_close_series, daily_trend_series) indexed by ``dates``.
+
+    The trend is a rolling SMA of the daily close (window=DAILY_TREND_WINDOW).
+    Daily close is derived from the last minute bar of each day's minute file.
+    Days with no data simply produce NaN — the backtest gracefully skips them.
+    """
+    closes = {}
+    for d in dates:
+        date_str = pd.Timestamp(d).strftime("%Y%m%d")
+        df = load_minute_parquet_for_day(ticker, date_str)
+        if df is None or df.empty:
+            continue
+        last_close = df['close'].dropna()
+        if last_close.empty:
+            continue
+        closes[pd.Timestamp(d)] = float(last_close.iloc[-1])
+
+    s = pd.Series(closes, dtype=float).reindex(pd.DatetimeIndex(dates)).sort_index()
+    trend = s.rolling(window=DAILY_TREND_WINDOW, min_periods=1).mean()
+    return s, trend
+
+
+def compute_intraday_indicators(df):
+    """Add the columns the backtest needs: z, vol15, volatility, atr.
+
+    Returns ``None`` when the input is None/empty so the caller can short-circuit.
+    """
+    if df is None or df.empty:
+        return None
+
+    df = df.copy()
+    close = df['close'].astype(float)
+
+    # Rolling mean / std of close, then standardized z-score
+    roll_mean = close.rolling(INTRADAY_LOOKBACK, min_periods=2).mean()
+    roll_std  = close.rolling(INTRADAY_LOOKBACK, min_periods=2).std().clip(lower=ROLL_STD_FLOOR)
+    df['z'] = (close - roll_mean) / roll_std
+
+    # Rolling 15-bar volume sum, used by the volume-confirmation filter
+    df['vol15'] = df['volume'].rolling(INTRADAY_LOOKBACK, min_periods=1).sum()
+
+    # Realised return volatility (rolling std of pct change)
+    rets = close.pct_change()
+    df['volatility'] = rets.rolling(INTRADAY_LOOKBACK, min_periods=2).std().fillna(VOL_FLOOR)
+
+    # True Range / ATR (Wilder's smoothing approximated by simple MA)
+    high = df['high'].astype(float)
+    low  = df['low'].astype(float)
+    prev_close = close.shift(1)
+    tr = pd.concat([
+        (high - low).abs(),
+        (high - prev_close).abs(),
+        (low - prev_close).abs(),
+    ], axis=1).max(axis=1)
+    df['atr'] = tr.rolling(ATR_WINDOW, min_periods=1).mean().fillna(ATR_FLOOR)
+
+    return df

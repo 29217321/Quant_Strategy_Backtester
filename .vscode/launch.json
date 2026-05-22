@@ -1,0 +1,34 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src",
+                "PYTHONUTF8": "1",
+                "PYTHONIOENCODING": "utf-8"
+            },
+            "justMyCode": false
+        },
+        {
+            "name": "Backtest: execution.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/execution.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/src",
+                "PYTHONUTF8": "1",
+                "PYTHONIOENCODING": "utf-8",
+                "QUANTX_RUN_MODE": "JAN"
+            },
+            "justMyCode": false
+        }
+    ]
+}

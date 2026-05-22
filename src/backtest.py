@@ -1,3 +1,26 @@
+"""
+QuantX V4.9 — sequential backtest engine.
+"""
+import math
+import traceback
+from collections import defaultdict
+
+import numpy as np
+import pandas as pd
+
+from strategy import (
+    INITIAL_CAPITAL,
+    SKIP_FIRST_MINUTES, SKIP_LAST_MINUTES,
+    VOLUME_MIN_FACTOR, Z_THRESHOLD, CONFIRM_BARS,
+    MAX_GROSS_EXPOSURE, MAX_POSITION_FRACTION,
+    RISK_PER_TRADE, STOP_LOSS_PCT, TAKE_PROFIT_PCT,
+    TRANSACTION_COST_PCT, SLIPPAGE_PCT,
+    VOL_FLOOR, ATR_FLOOR,
+    compute_daily_trend, compute_intraday_indicators,
+    load_minute_parquet_for_day,
+)
+
+
 # ------------------------
 # Backtest core (sequential)
 # ------------------------

@@ -1,3 +1,11 @@
+"""
+QuantX V4.9 — performance summary helpers.
+"""
+import math
+
+from strategy import MINUTES_PER_DAY
+
+
 # ---------------------------------
 # Performance helpers and reporting
 # ---------------------------------
