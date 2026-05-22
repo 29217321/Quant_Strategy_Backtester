@@ -21,3 +21,11 @@ notebooks/cache_minute_data/
 # Ignore PDFs and heavy outputs (optional for large repos)
 outputs/*.zip
 outputs/*.pdf
+
+# ===== QuantX backtest reports =====
+quantx_reports/
+results/
+**/QuantX_*.csv
+**/QuantX_*.png
+**/QuantX_*.pdf
+**/chart_*.png
