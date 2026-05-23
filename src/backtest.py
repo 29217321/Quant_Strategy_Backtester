@@ -14,10 +14,11 @@ from strategy import (
     VOLUME_MIN_FACTOR, Z_THRESHOLD, CONFIRM_BARS,
     MAX_GROSS_EXPOSURE, MAX_POSITION_FRACTION,
     RISK_PER_TRADE, STOP_LOSS_PCT, TAKE_PROFIT_PCT,
-    TRANSACTION_COST_PCT, SLIPPAGE_PCT,
+    SLIPPAGE_PCT,
     VOL_FLOOR, ATR_FLOOR,
     compute_daily_trend, compute_intraday_indicators,
     load_minute_parquet_for_day,
+    compute_commission,
 )
 
 
@@ -84,7 +85,8 @@ def run_backtest(tickers, start_date, end_date, stop_on_negative_cash=False):
                     if pos['shares'] != 0:
                         pnl_pct = (exec_price - pos['entry_price']) / (pos['entry_price'] if pos['entry_price']!=0 else 1e-8)
                         if (pnl_pct <= -STOP_LOSS_PCT) or (pnl_pct >= TAKE_PROFIT_PCT):
-                            proceeds = pos['shares'] * exec_price * (1.0 - TRANSACTION_COST_PCT - SLIPPAGE_PCT)
+                            gross = pos['shares'] * exec_price * (1.0 - SLIPPAGE_PCT)
+                            proceeds = gross - compute_commission(pos['shares'], exec_price, 'sell')
                             cash += proceeds
                             trades.append({
                                 'symbol': t,
@@ -161,7 +163,7 @@ def run_backtest(tickers, start_date, end_date, stop_on_negative_cash=False):
                         if n_shares <= 0:
                             stats['size_fail'] += 1; continue
 
-                        cost = n_shares * exec_price * (1.0 + TRANSACTION_COST_PCT + SLIPPAGE_PCT)
+                        cost = n_shares * exec_price * (1.0 + SLIPPAGE_PCT) + compute_commission(n_shares, exec_price, 'buy')
                         if cost > cash:
                             stats['cash_fail'] += 1; continue
 
@@ -193,7 +195,8 @@ def run_backtest(tickers, start_date, end_date, stop_on_negative_cash=False):
                     df = intraday.get(sym)
                     if df is not None and len(df) > 0:
                         close_price = df['close'].iloc[-1]
-                        proceeds = pos['shares'] * close_price * (1.0 - TRANSACTION_COST_PCT - SLIPPAGE_PCT)
+                        gross = pos['shares'] * close_price * (1.0 - SLIPPAGE_PCT)
+                        proceeds = gross - compute_commission(pos['shares'], close_price, 'sell')
                         cash += proceeds
                         trades.append({
                             'symbol': sym,

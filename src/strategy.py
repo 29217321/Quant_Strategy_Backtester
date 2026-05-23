@@ -16,16 +16,17 @@ except Exception:
 # ------------------------------------------------------------------
 # Run configuration (override via env vars or by editing here)
 # ------------------------------------------------------------------
-RUN_MODE  = os.environ.get("QUANTX_RUN_MODE", "JAN")  # JAN / FEB / JAN_FEB / JAN_JUN / JUL_SEP / OCT_DEC / FULL
+RUN_MODE  = "RECENT"   # 写死,不再读环境变量。可选: JAN / FEB / JAN_FEB / JAN_JUN / JUL_SEP / OCT_DEC / FULL / RECENT
 DATA_ROOT = os.environ.get("QUANTX_DATA_ROOT", "./data")
 
 # Dow 30 + a few large caps (matches the README universe size of 32).
-ALL_TICKERS = [
-    "AAPL", "MSFT", "AMZN", "NVDA", "GOOGL", "META", "TSLA", "JPM",
-    "V", "UNH", "HD", "PG", "MA", "DIS", "BAC", "XOM",
-    "KO", "PFE", "CSCO", "WMT", "INTC", "VZ", "CVX", "MRK",
-    "MCD", "NKE", "CRM", "BA", "IBM", "GS", "MMM", "CAT",
-]
+# ALL_TICKERS = [
+#     "AAPL", "MSFT", "AMZN", "NVDA", "GOOGL", "META", "TSLA", "JPM",
+#     "V", "UNH", "HD", "PG", "MA", "DIS", "BAC", "XOM",
+#     "KO", "PFE", "CSCO", "WMT", "INTC", "VZ", "CVX", "MRK",
+#     "MCD", "NKE", "CRM", "BA", "IBM", "GS", "MMM", "CAT",
+# ]
+ALL_TICKERS = ["NVDA"]
 
 # ---------------
 # Strategy params
@@ -46,13 +47,49 @@ MAX_OPEN_POSITIONS_TOTAL = 14
 STOP_LOSS_PCT         = 0.022
 TAKE_PROFIT_PCT       = 0.10
 
-TRANSACTION_COST_PCT  = 0.0002
+# ---------------------------------------------------------------
+# Longbridge US-stock fee schedule (USD) —以面额的方式成交,不再使用简单百分比
+#   平台费 : 0.005 / 股, 单笔最低 1 USD                     (买+卖)
+#   交易费 : 0.003 / 股                                       (买+卖)
+#   SEC 费: 0.0000229 * 交易金额, 最低 0.01 USD              (仅卖)
+#   TAF    : 0.00013 / 股, 最低 0.01, 最高 6.49 USD            (仅卖)
+# ---------------------------------------------------------------
+LB_PLATFORM_FEE_PER_SHARE    = 0.005
+LB_PLATFORM_FEE_MIN          = 1.00
+LB_TRANSACTION_FEE_PER_SHARE = 0.003
+LB_SEC_FEE_RATE              = 0.0000229   # sell only
+LB_SEC_FEE_MIN               = 0.01
+LB_TAF_PER_SHARE             = 0.00013     # sell only
+LB_TAF_MIN                   = 0.01
+LB_TAF_MAX                   = 6.49
+
+# 滑点仍然以百分比模拟(与佣金独立)
 SLIPPAGE_PCT          = 0.0005
+
+# 保留旧变量名,防止别处引用;新逻辑不再使用该值
+TRANSACTION_COST_PCT  = 0.0
+
 MINUTES_PER_DAY       = 390
 SKIP_FIRST_MINUTES    = 3
 SKIP_LAST_MINUTES     = 5
 
 INITIAL_CAPITAL       = 1_000_000.0
+
+
+def compute_commission(shares, price, side):
+    """计算单笔成交的长桥美股佣金(USD)。side='buy'|'sell'。返回总额>=0。"""
+    n = abs(int(shares))
+    if n <= 0:
+        return 0.0
+    notional = n * float(price)
+    platform    = max(LB_PLATFORM_FEE_PER_SHARE * n, LB_PLATFORM_FEE_MIN)
+    transaction = LB_TRANSACTION_FEE_PER_SHARE * n
+    fee = platform + transaction
+    if side == 'sell':
+        sec = max(LB_SEC_FEE_RATE * notional, LB_SEC_FEE_MIN)
+        taf = min(max(LB_TAF_PER_SHARE * n, LB_TAF_MIN), LB_TAF_MAX)
+        fee += sec + taf
+    return float(fee)
 
 ROLL_STD_FLOOR = 1e-4
 VOL_FLOOR = 1e-4
@@ -68,6 +105,34 @@ MAX_TRADES_PER_TICKER_ZOOM = 0    # 0 = disabled (avoid 322 extra charts)
 # ------------------------
 # RUN_MODE -> dates
 # ------------------------
+def _detect_data_date_range(ticker):
+    """扫描 DATA_ROOT/<ticker>/ 下所有 *_YYYYMMDD.{parquet,parq,csv,pkl} 文件,
+    返回 (start_date_str, end_date_str), 格式 'YYYY-MM-DD'。
+
+    若目录不存在或没有可识别的文件名, 返回 (None, None)。
+    """
+    import re
+    folder = os.path.join(DATA_ROOT, ticker)
+    if not os.path.isdir(folder):
+        return None, None
+    pat = re.compile(r"(\d{8})")  # 任意位置出现的 8 位数字 = YYYYMMDD
+    dates = set()
+    for fn in os.listdir(folder):
+        if not fn.lower().endswith((".parquet", ".parq", ".csv", ".pkl")):
+            continue
+        m = pat.search(fn)
+        if not m:
+            continue
+        try:
+            d = pd.to_datetime(m.group(1), format="%Y%m%d")
+            dates.add(d)
+        except Exception:
+            continue
+    if not dates:
+        return None, None
+    return min(dates).strftime("%Y-%m-%d"), max(dates).strftime("%Y-%m-%d")
+
+
 if RUN_MODE == "JAN":
     START_DATE, END_DATE = "2024-01-02", "2024-01-31"
 elif RUN_MODE == "FEB":
@@ -80,6 +145,22 @@ elif RUN_MODE == "JUL_SEP":
     START_DATE, END_DATE = "2024-07-01", "2024-09-30"
 elif RUN_MODE == "OCT_DEC":
     START_DATE, END_DATE = "2024-10-01", "2024-12-31"
+elif RUN_MODE == "RECENT":
+    # 自动按 data/<ticker>/ 下已下载的文件名 (含 YYYYMMDD) 推导日期窗口。
+    # 假设 ALL_TICKERS 只填一个代码 (多只时取第一只作为基准)。
+    _probe_ticker = ALL_TICKERS[0] if ALL_TICKERS else None
+    _auto_start, _auto_end = (None, None)
+    if _probe_ticker:
+        _auto_start, _auto_end = _detect_data_date_range(_probe_ticker)
+    if _auto_start and _auto_end:
+        START_DATE, END_DATE = _auto_start, _auto_end
+        print(f"[RECENT] auto-detected date range from data/{_probe_ticker}/: "
+              f"{START_DATE} → {END_DATE}")
+    else:
+        # 兜底:目录为空或不存在, 用最近一年的硬编码值
+        START_DATE, END_DATE = "2025-05-23", "2026-05-22"
+        print(f"[RECENT] data/{_probe_ticker}/ 找不到带 YYYYMMDD 的数据文件, "
+              f"fallback 到 {START_DATE} → {END_DATE}")
 else:
     START_DATE, END_DATE = "2024-01-02", "2024-12-31"
 
@@ -101,8 +182,8 @@ def _find_file_for_day(ticker, date_str):
     folder = os.path.join(DATA_ROOT, ticker)
     if not os.path.isdir(folder):
         return None
-    # search for common extensions
-    for ext in ("*.parquet", "*.parq", "*.csv", "*.pkl"):
+    # search for common extensions (csv 优先, 方便人工核对; 找不到再回退到 parquet)
+    for ext in ("*.csv", "*.parquet", "*.parq", "*.pkl"):
         for fn in glob.glob(os.path.join(folder, f"*{date_str}*{ext.replace('*','')}")):
             return fn
     # fallback: any file with date_str substring
