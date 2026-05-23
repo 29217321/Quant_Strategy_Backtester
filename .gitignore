@@ -6,7 +6,6 @@ Thumbs.db
 
 # Ignore raw data and cache
 notebooks/cache_minute_data/
-*.csv
 *.parquet
 
 # Ignore local environments
