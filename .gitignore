@@ -5,7 +5,6 @@ __pycache__/
 Thumbs.db
 
 # Ignore raw data and cache
-data/
 notebooks/cache_minute_data/
 *.csv
 *.parquet
